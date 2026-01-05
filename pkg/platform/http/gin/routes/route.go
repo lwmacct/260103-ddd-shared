@@ -17,17 +17,23 @@ const (
 
 // Route 路由定义（声明式）
 type Route struct {
-	Handlers []gin.HandlerFunc `json:""` // 处理链：[0] 处理函数，后续为中间件（不可序列化）
+	Handlers []gin.HandlerFunc `json:"-"` // 处理链：[0] 处理函数，后续为中间件（不可序列化）
 
 	// 基本
 	Audit       bool   `json:"audit"`       // 是否开启审计
 	Method      Method `json:"method"`      // HTTP 方法
-	Path        string `json:"path"`        // Gin 路由路径
+	Path        string `json:"path"`        // OpenAPI 格式路径（参数用 {param}，如 /users/{id}）
 	OperationID string `json:"operationId"` // OpenAPI operationId + 权限标识
 
+	// 安全
+	Public    bool   `json:"public"`              // 是否公开接口（无需认证，如 /login, /health）
+	RateLimit string `json:"rateLimit,omitempty"` // 限流规则（如 "10/s", "100/m", "1000/h"）
+
 	// 文档
-	Tags        []string `json:"tags"`        // 分类标签（Swagger tags）
-	Summary     string   `json:"summary"`     // 简短标题（Swagger summary）
-	Description string   `json:"description"` // 详细说明（Swagger description，支持 CommonMark）
-	Deprecated  bool     `json:"deprecated"`  // 是否废弃（Swagger UI 会特殊标记）
+	Tags        []string `json:"tags"`               // 分类标签（Swagger tags）
+	Summary     string   `json:"summary"`            // 简短标题（Swagger summary）
+	Description string   `json:"description"`        // 详细说明（Swagger description，支持 CommonMark）
+	Deprecated  bool     `json:"deprecated"`         // 是否废弃（Swagger UI 会特殊标记）
+	Consumes    []string `json:"consumes,omitempty"` // 接受的 Content-Type（默认 application/json）
+	Produces    []string `json:"produces,omitempty"` // 响应的 Content-Type（默认 application/json）
 }
