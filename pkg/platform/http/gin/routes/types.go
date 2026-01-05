@@ -28,4 +28,9 @@ type Route struct {
 	Tags        string
 	Summary     string
 	Description string
+
+	// 审计配置
+	Audit    bool   // 是否开启审计
+	Category string // 审计分类
+	Label    string // 审计标签
 }
