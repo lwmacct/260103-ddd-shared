@@ -15,7 +15,11 @@ const (
 	OPTIONS Method = "OPTIONS"
 )
 
-// Route 路由定义（声明式）
+// Route 路由定义（声明式）。
+//
+// Path 字段采用 OpenAPI 格式（{param}），注册到 Gin 时需使用 [ToGinPath] 转换：
+//
+//	r.Handle(string(route.Method), ToGinPath(route.Path), route.Handlers...)
 type Route struct {
 	Handlers []gin.HandlerFunc `json:"-"` // 处理链：[0] 处理函数，后续为中间件（不可序列化）
 
