@@ -1,6 +1,6 @@
 #
 # Docker Compose file for PostgreSQL and Redis services.
-# docker compose -f deployments/docker/docker-compose.yml up -d
+# docker compose -p srv-db up -d
 # .env file COMPOSE_PROJECT_NAME=srv-db
 ---
 services:
@@ -24,7 +24,7 @@ services:
       service.name: "postgres"
 
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     network_mode: host
     volumes:
       - redis_data:/data
