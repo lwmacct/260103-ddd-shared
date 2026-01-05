@@ -39,6 +39,14 @@ type MessageResponse struct {
 	Message string `json:"message"` // 消息描述
 }
 
+// EmptyResponse 空响应（用于 HTTP 204 无内容响应的 Swagger 文档）
+//
+// 运行时使用 [NoContent] 函数，不返回响应体。
+// 此类型仅用于 Swagger 注解，使前端代码生成器能正确处理。
+//
+//	@Description	空响应格式
+type EmptyResponse struct{}
+
 // ErrorResponse 错误响应结构（用于 Swagger 文档）
 type ErrorResponse struct {
 	Error ErrorDetail `json:"error"`
