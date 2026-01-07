@@ -32,12 +32,14 @@ pkg/
 │   ├── eventbus/                # 事件总线
 │   ├── health/                  # 健康检查
 │   ├── http/gin/                # Gin HTTP 集成
+│   │   ├── server.go            # HTTP 服务器包装器
+│   │   ├── ctxutil/             # Context 工具
 │   │   ├── handler/             # 通用 Handler 模式
+│   │   ├── helper/              # HTTP 辅助工具
 │   │   ├── middleware/          # CORS, 日志, RequestID
 │   │   ├── permission/          # RBAC 权限解析
 │   │   ├── response/            # 标准化响应
-│   │   ├── routes/              # 路由元数据
-│   │   └── ctxutil/             # Context 工具
+│   │   └── routes/              # 路由元数据
 │   ├── queue/                   # Redis 队列
 │   └── telemetry/               # OpenTelemetry
 │
@@ -83,17 +85,17 @@ response.EmptyResponse{}
 import "pkg/platform/http/gin/routes"
 
 route := routes.Route{
-    Method:      "GET",
+    Method:      routes.GET,
     Path:        "/api/users/{id}",  // OpenAPI 风格
-    Operation:   "iam:user:read",
+    OperationID: "iam:user:read",
     Summary:     "获取用户详情",
     Tags:        []string{"user"},
-    RequireAuth: true,
+    Public:      false,
 }
 
 // 路径转换
-ginPath := route.ToGinPath()      // "/api/users/:id"
-openAPIPath := route.ToOpenAPIPath() // "/api/users/{id}"
+ginPath := routes.ToGinPath(route.Path)      // "/api/users/:id"
+openAPIPath := routes.ToOpenAPIPath(ginPath) // "/api/users/{id}"
 ```
 
 ### Cache
@@ -193,8 +195,8 @@ func main() {
 
     // 3. 定义路由
     userRoutes := []routes.Route{
-        {Method: "GET", Path: "/api/users", Operation: "iam:user:list"},
-        {Method: "POST", Path: "/api/users", Operation: "iam:user:create"},
+        {Method: routes.GET, Path: "/api/users", OperationID: "iam:user:list"},
+        {Method: routes.POST, Path: "/api/users", OperationID: "iam:user:create"},
     }
 
     // 4. 使用响应工具
