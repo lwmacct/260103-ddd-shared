@@ -1,103 +1,84 @@
 package infrastructure
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
-	"math/big"
+	"image/color"
+	"time"
+
+	"github.com/mojocn/base64Captcha"
 
 	"github.com/lwmacct/260103-ddd-shared/pkg/shared/captcha"
 )
 
+// 验证码默认配置
+const (
+	DefaultExpiration = 5 * time.Minute
+	DefaultLength     = 6   // 验证码长度
+	DefaultWidth      = 120 // 图片宽度
+	DefaultHeight     = 40  // 图片高度
+)
+
+// 数字验证码字符集
+const charset = "0123456789"
+
 // Service 验证码生成服务实现
 type Service struct {
-	defaultExpiration int64 // 秒
+	driver *base64Captcha.DriverString
 }
 
 // NewService 创建验证码服务
 func NewService() captcha.Service {
+	// 创建字符串验证码驱动（支持数字）
+	driver := base64Captcha.NewDriverString(
+		DefaultHeight,                     // 高度
+		DefaultWidth,                      // 宽度
+		80,                                // 干扰噪点数量
+		base64Captcha.OptionShowSlimeLine, // 显示干扰线
+		DefaultLength,                     // 验证码长度
+		charset,                           // 字符集（纯数字）
+		&color.RGBA{245, 245, 245, 255},   // 背景颜色（浅灰）
+		nil,                               // 使用默认字体存储
+		[]string{"wqy-microhei.ttc"},      // 字体列表
+	).ConvertFonts()
+
 	return &Service{
-		defaultExpiration: 300, // 5分钟
+		driver: driver,
 	}
 }
 
 // GenerateRandomCode 生成随机验证码
 // 返回 (captchaID, imageBase64, code, error)
 func (s *Service) GenerateRandomCode() (string, string, string, error) {
-	// 生成6位随机数字验证码
-	code, err := s.generateRandomCode(6)
+	captchaInstance := base64Captcha.NewCaptcha(s.driver, base64Captcha.DefaultMemStore)
+	captchaID, b64s, _, err := captchaInstance.Generate()
 	if err != nil {
-		return "", "", "", fmt.Errorf("failed to generate code: %w", err)
+		return "", "", "", fmt.Errorf("failed to generate captcha: %w", err)
 	}
 
-	// 生成验证码ID
-	captchaID, err := s.generateCaptchaID()
-	if err != nil {
-		return "", "", "", fmt.Errorf("failed to generate captcha ID: %w", err)
-	}
+	// 从 base64Captcha 的 store 获取验证码值
+	code := base64Captcha.DefaultMemStore.Get(captchaID, false)
 
-	// 生成Base64图片（简化实现，实际应使用图片生成库）
-	imageBase64, err := s.generateImageBase64(code)
-	if err != nil {
-		return "", "", "", fmt.Errorf("failed to generate image: %w", err)
-	}
-
-	return captchaID, imageBase64, code, nil
+	return captchaID, b64s, code, nil
 }
 
-// GenerateCustomCodeImage 生成指定文本的验证码图片（用于开发模式）
+// GenerateCustomCodeImage 生成指定文本的验证码图片
+// 用于开发模式
 func (s *Service) GenerateCustomCodeImage(text string) (string, error) {
-	return s.generateImageBase64(text)
+	item, err := s.driver.DrawCaptcha(text)
+	if err != nil {
+		return "", fmt.Errorf("failed to draw captcha: %w", err)
+	}
+	return item.EncodeB64string(), nil
 }
 
 // GenerateDevCaptchaID 生成开发模式验证码ID
 func (s *Service) GenerateDevCaptchaID() string {
-	id, _ := s.generateCaptchaID()
-	return id
+	return fmt.Sprintf("dev-%d", time.Now().Unix())
 }
 
-// GetDefaultExpiration 获取默认过期时间
+// GetDefaultExpiration 获取默认过期时间（秒）
 func (s *Service) GetDefaultExpiration() int64 {
-	return s.defaultExpiration
-}
-
-// ============================================================================
-// 私有辅助方法
-// ============================================================================
-
-// generateRandomCode 生成随机数字验证码
-func (s *Service) generateRandomCode(length int) (string, error) {
-	const digits = "0123456789"
-
-	code := make([]byte, length)
-	for i := range length {
-		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(digits))))
-		if err != nil {
-			return "", err
-		}
-		code[i] = digits[num.Int64()]
-	}
-
-	return string(code), nil
-}
-
-// generateCaptchaID 生成验证码唯一ID
-func (s *Service) generateCaptchaID() (string, error) {
-	b := make([]byte, 16)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return base64.URLEncoding.EncodeToString(b), nil
-}
-
-// generateImageBase64 生成验证码图片的Base64编码
-// 简化实现：返回纯文本的Base64（生产环境应使用图片生成库）
-func (s *Service) generateImageBase64(code string) (string, error) {
-	// TODO: 实现真实的图片生成
-	// 当前返回纯文本的Base64，前端可直接显示
-	// 生产环境应使用 github.com/mojocn/base64Captcha 或类似库
-	text := "CAPTCHA:" + code
-	return base64.StdEncoding.EncodeToString([]byte(text)), nil
+	return int64(DefaultExpiration.Seconds())
 }
 
 // ============================================================================
